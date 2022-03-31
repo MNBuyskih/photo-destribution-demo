@@ -35,6 +35,7 @@ body, html, #root, .sidebar, .layout {
 .page {
   background-color: #fff;
   position: relative;
+  zoom: 0.8;
 }
 
 .image {
