@@ -1,25 +1,22 @@
 import React from "react";
-import {TOrientation} from "./App";
+import {PhotosPicker} from "./PhotosPicker";
+import {IPhoto, TOrientation} from "./App";
+import {OrientationPicker} from "./OrientationPicker";
 
 interface IProps {
+  photos: IPhoto[];
   orientation: TOrientation;
-  onOrientationChange: (orientation: TOrientation) => void;
+  onOrientationChange(orientation: TOrientation): void;
+  onPhotosChange(photos: IPhoto[]): void;
 }
 
 export function Sidebar(props: IProps): JSX.Element {
-  const {orientation, onOrientationChange} = props;
-  const handleOrientationChange = React.useCallback((e) => onOrientationChange(e.target.value), [onOrientationChange]);
+  const {orientation, photos, onOrientationChange, onPhotosChange} = props;
 
   return (
     <div className="sidebar">
-      <div>
-        <label htmlFor={"orientation"}>Page orientation </label>
-        <select id={"orientation"} defaultValue={orientation} onChange={handleOrientationChange}>
-          <option value="portrait">Portrait</option>
-          <option value="square">Square</option>
-          <option value="landscape">Landscape</option>
-        </select>
-      </div>
+      <OrientationPicker orientation={orientation} onOrientationChange={onOrientationChange} />
+      <PhotosPicker photos={photos} onPhotosChange={onPhotosChange} />
     </div>
   );
 }

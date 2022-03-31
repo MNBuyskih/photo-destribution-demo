@@ -16,18 +16,15 @@ export function Page(props: IProps) {
   const style = React.useMemo(() => ({width: `${pageSize[0]}px`, height: `${pageSize[1]}px`}), [pageSize]);
   const cat = useRandomCat();
   const {image, size: imageSize} = cat;
-  const {top, left, width,height} = useImageLayout(imageSize[0], imageSize[1], pageSize[0], pageSize[1]);
+  const imageStyles = useImageLayout(imageSize[0], imageSize[1], pageSize[0], pageSize[1]);
 
   return <div className="page" style={style}>
-    <div className="info">
-      <dl>
-        <dt>image width:</dt>
-        <dd>{imageSize[0]}px</dd>
-        <dt>image height:</dt>
-        <dd>{imageSize[1]}px</dd>
-      </dl>
+    <div className="image" style={imageStyles}>
+      <div className="info">
+        <dt>Image ratio: {imageSize[0] / 1000}/{imageSize[1] / 1000}</dt>
+      </div>
+      <img src={image} />
     </div>
-    <img src={image} style={{top, left, width,height}} className="image" />
   </div>;
 }
 
