@@ -1,24 +1,17 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import "./App.css";
+import {Layout} from "./Layout";
+import {Sidebar} from "./Sidebar";
+
+export type TOrientation = "portrait" | "landscape" | "square";
 
 function App() {
+  const [orientation, setOrientation] = React.useState<TOrientation>("square");
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <Sidebar orientation={orientation} onOrientationChange={setOrientation} />
+      <Layout orientation={orientation} />
     </div>
   );
 }
