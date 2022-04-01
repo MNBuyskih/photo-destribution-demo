@@ -1,20 +1,24 @@
-import React, { Children } from "react";
-import {TOrientation} from "./App";
+import React from "react";
+import { TOrientation } from "./App";
 import cat0 from "./assets/cat0.jpg";
 import cat1 from "./assets/cat1.jpg";
 import cat2 from "./assets/cat2.jpg";
 import cat3 from "./assets/cat3.jpg";
 
-interface IProps {orientation: TOrientation;}
-interface IPhoto {size: [number, number], image: string;}
-
+interface IProps {
+  orientation: TOrientation;
+}
+interface IPhoto {
+  size: [number, number];
+  image: string;
+}
 
 interface INodeBase {
   ar?: number;
-  top?: number,
-  left?: number,
-  width?: number,
-  height?: number
+  top?: number;
+  left?: number;
+  width?: number;
+  height?: number;
 }
 
 interface ILeafNode extends INodeBase {
@@ -29,40 +33,56 @@ interface IInternalNode extends INodeBase {
 
 type INode = ILeafNode | IInternalNode;
 
-
 export function Page(props: IProps) {
-  const {orientation} = props;
-  const pageSize = React.useMemo(() => orientation === "portrait" ? [850, 1100] : orientation === "landscape" ? [
-    1100,
-    850,
-  ] : [1100, 1100], [orientation]);
-  const style = React.useMemo(() => ({width: `${pageSize[0]}px`, height: `${pageSize[1]}px`}), [pageSize]);
-  const cats = [useRandomCat(), useRandomCat(), useRandomCat(),  useRandomCat(),  useRandomCat(),  useRandomCat(),  useRandomCat()];
+  const { orientation } = props;
+  const pageSize = React.useMemo(
+    () =>
+      orientation === "portrait"
+        ? [850, 1100]
+        : orientation === "landscape"
+        ? [1100, 850]
+        : [1100, 1100],
+    [orientation]
+  );
+  const style = React.useMemo(
+    () => ({ width: `${pageSize[0]}px`, height: `${pageSize[1]}px` }),
+    [pageSize]
+  );
+  const cats = [
+    useRandomCat(),
+    useRandomCat(),
+    useRandomCat(),
+    useRandomCat(),
+    useRandomCat(),
+    useRandomCat(),
+    useRandomCat(),
+  ];
 
   const layout = createLayout(cats);
   calculateLayout(layout, pageSize[0], pageSize[1]);
 
   console.log("layout", layout);
 
-
   return (
-  <div className="page" style={style}>
-    {selectLeafNodes(layout).map(l => renderPhoto(l)) }
-  </div>
+    <div className="page" style={style}>
+      {selectLeafNodes(layout).map((l) => renderPhoto(l))}
+    </div>
   );
 }
 
-function selectLeafNodes(node: INode): ILeafNode[]{
+function selectLeafNodes(node: INode): ILeafNode[] {
   if (node.label === "P") {
     return [node];
   } else {
-    return selectLeafNodes(node.children[0]).concat(selectLeafNodes(node.children[1]));
+    return selectLeafNodes(node.children[0]).concat(
+      selectLeafNodes(node.children[1])
+    );
   }
 }
 
 function renderPhoto(leaf: ILeafNode) {
-  const {left, top, width, height } = leaf;
-  const imageStyles =  {left, top, width, height }
+  const { left, top, width, height } = leaf;
+  const imageStyles = { left, top, width, height };
 
   return (
     <div className="image" style={imageStyles}>
@@ -76,16 +96,20 @@ function renderPhoto(leaf: ILeafNode) {
 
 function useRandomCat(min = 0, max = 4): IPhoto {
   const rand = () => Math.floor(Math.random() * (max - min)) + min;
-  const sizes: [number, number][] = [[16, 9], [9, 16], [4, 3], [3, 4]].map(size => ([size[0] * 1000, size[1] * 1000]));
+  const sizes: [number, number][] = [
+    [16, 9],
+    [9, 16],
+    [4, 3],
+    [3, 4],
+  ].map((size) => [size[0] * 1000, size[1] * 1000]);
 
   return [
-    {size: sizes[rand()], image: cat0},
-    {size: sizes[rand()], image: cat1},
-    {size: sizes[rand()], image: cat2},
-    {size: sizes[rand()], image: cat3},
+    { size: sizes[rand()], image: cat0 },
+    { size: sizes[rand()], image: cat1 },
+    { size: sizes[rand()], image: cat2 },
+    { size: sizes[rand()], image: cat3 },
   ][rand()];
 }
-
 
 function createLayout(photos: IPhoto[]): INode {
   const photo0 = p(photos[0]);
@@ -97,33 +121,30 @@ function createLayout(photos: IPhoto[]): INode {
   const photo6 = p(photos[6]);
 
   return v(
-    h(photo0, h(photo1, photo2)), 
-    h(
-        v(photo3, h(photo4, photo5)), 
-        photo6
-      )
-    )
+    h(photo0, h(photo1, photo2)),
+    h(v(photo3, h(photo4, photo5)), photo6)
+  );
 
   function h(node1: INode, node2: INode): INode {
     return {
       label: "H",
-      children: [node1, node2]
-    }
+      children: [node1, node2],
+    };
   }
 
   function v(node1: INode, node2: INode): INode {
     return {
       label: "V",
-      children: [node1, node2]
-    }
+      children: [node1, node2],
+    };
   }
 
   function p(photo: IPhoto): INode {
     return {
       label: "P",
       photo: photo,
-      ar: photo.size[0] / photo.size[1]
-    }
+      ar: photo.size[0] / photo.size[1],
+    };
   }
 }
 
@@ -153,14 +174,18 @@ function fillAspectRatio(node: INode): number {
   }
 
   if (node.label === "H") {
-    node.ar = fillAspectRatio(node.children[0]) + fillAspectRatio(node.children[1]);
-    
+    node.ar =
+      fillAspectRatio(node.children[0]) + fillAspectRatio(node.children[1]);
+
     return node.ar;
   }
 
   if (node.label === "V") {
-    node.ar = 1/(1/fillAspectRatio(node.children[0]) + 1/fillAspectRatio(node.children[1]));
-    
+    node.ar =
+      1 /
+      (1 / fillAspectRatio(node.children[0]) +
+        1 / fillAspectRatio(node.children[1]));
+
     return node.ar;
   }
 
@@ -170,11 +195,11 @@ function fillAspectRatio(node: INode): number {
 function fillSizes(node: INode) {
   if (node.label === "H") {
     node.children[0].height = node.height;
-    node.children[0].width = node.height! * node.children[0].ar!
+    node.children[0].width = node.height! * node.children[0].ar!;
     node.children[0].top = node.top;
     node.children[0].left = node.left;
     node.children[1].height = node.height;
-    node.children[1].width = node.height! * node.children[1].ar!
+    node.children[1].width = node.height! * node.children[1].ar!;
     node.children[1].top = node.top;
     node.children[1].left = node.left! + node.children[0].width;
   }
