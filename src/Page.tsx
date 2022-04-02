@@ -119,7 +119,7 @@ function crateLayoutDivideConquer(photos: IPhoto[], targetAr: number): INode {
     .map((p) => createPhotoNode(p))
     .sort((a, b) => a.ar! - b.ar!);
 
-  return createTree(photoNodes, 1, targetAr);
+  return createTree(photoNodes, photoNodes.length, targetAr);
 }
 
 function createTree(
@@ -127,7 +127,37 @@ function createTree(
   numberOfPhotos: number,
   targetAr: number
 ): INode {
-  return chooseTwoPhotoNode(photoNodes, targetAr);
+  if (numberOfPhotos === 1) {
+    return chooseOnePhotoNode(photoNodes, targetAr);
+  }
+
+  if (numberOfPhotos === 2) {
+    return chooseTwoPhotoNode(photoNodes, targetAr);
+  }
+
+  const numberOfPhotosFirstChild = Math.floor(numberOfPhotos / 2);
+  const numberOfPhotosSecondChild = numberOfPhotos - numberOfPhotosFirstChild;
+
+  // applying golden ratio principle
+  const targetArRatioFirstChild = targetAr > 1 ? 0.382 : 2.618;
+  const targetArRatioSecondChild = targetAr > 1 ? 0.618 : 1.618;
+  const nodeType = targetAr > 1 ? "H" : "V";
+
+  return {
+    label: nodeType,
+    children: [
+      createTree(
+        photoNodes,
+        numberOfPhotosFirstChild,
+        targetAr * targetArRatioFirstChild
+      ),
+      createTree(
+        photoNodes,
+        numberOfPhotosSecondChild,
+        targetAr * targetArRatioSecondChild
+      ),
+    ],
+  };
 }
 
 function chooseOnePhotoNode(photoNodes: ILeafNode[], targetAr: number) {
