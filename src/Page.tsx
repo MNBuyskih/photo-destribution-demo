@@ -15,6 +15,7 @@ interface IPhoto {
 
 interface INodeBase {
   ar?: number;
+  targetAr?: number;
   top?: number;
   left?: number;
   width?: number;
@@ -58,10 +59,12 @@ export function Page(props: IProps) {
     useRandomCat(),
   ];
 
-  const layout = createLayout(cats);
+  const pageAr = pageSize[0] / pageSize[1];
+
+  const layout = crateLayoutDivideConquer(cats, pageAr);
   calculateLayout(layout, pageSize[0], pageSize[1]);
 
-  console.log("layout", layout);
+  // console.log("layout", layout);
 
   return (
     <div className="page" style={style}>
@@ -109,6 +112,106 @@ function useRandomCat(min = 0, max = 4): IPhoto {
     { size: sizes[rand()], image: cat2 },
     { size: sizes[rand()], image: cat3 },
   ][rand()];
+}
+
+function crateLayoutDivideConquer(photos: IPhoto[], targetAr: number): INode {
+  const photoNodes = photos
+    .map((p) => createPhotoNode(p))
+    .sort((a, b) => a.ar! - b.ar!);
+
+  return createTree(photoNodes, 1, targetAr);
+}
+
+function createTree(
+  photoNodes: ILeafNode[],
+  numberOfPhotos: number,
+  targetAr: number
+): INode {
+  return chooseTwoPhotoNode(photoNodes, targetAr);
+}
+
+function chooseOnePhotoNode(photoNodes: ILeafNode[], targetAr: number) {
+  let bestMatchIndex = 0;
+  let bestMatchAr = Math.abs(targetAr - photoNodes[0].ar!);
+
+  photoNodes.forEach((p, i) => {
+    const ar = Math.abs(targetAr - p.ar!);
+    if (ar < bestMatchAr) {
+      bestMatchIndex = i;
+      bestMatchAr = ar;
+    }
+  });
+
+  return photoNodes.splice(bestMatchIndex, 1)[0];
+}
+
+function chooseTwoPhotoNode(
+  photoNodes: ILeafNode[],
+  targetAr: number
+): IInternalNode {
+  let i = 0;
+  let p = 0;
+  let j = photoNodes.length - 1;
+  let q = j;
+  let nodeType: "H" | "V" = "H";
+
+  let bestMatchAr = Math.abs(photoNodes[p].ar! + photoNodes[q].ar! - targetAr);
+
+  while (i < j) {
+    if (
+      Math.abs(photoNodes[i].ar! + photoNodes[j].ar! - targetAr) < bestMatchAr
+    ) {
+      bestMatchAr = Math.abs(photoNodes[i].ar! + photoNodes[j].ar! - targetAr);
+      p = i;
+      q = j;
+    }
+
+    if (photoNodes[i].ar! + photoNodes[j].ar! > targetAr) {
+      j--;
+    } else {
+      i++;
+    }
+  }
+
+  i = 0;
+  j = photoNodes.length - 1;
+
+  while (i < j) {
+    const ar =
+      (photoNodes[i].ar! * photoNodes[j].ar!) /
+      (photoNodes[i].ar! + photoNodes[j].ar!);
+    if (Math.abs(ar - targetAr) < bestMatchAr) {
+      bestMatchAr = Math.abs(ar - targetAr);
+      p = i;
+      q = j;
+      nodeType = "V";
+    }
+
+    if (ar > targetAr) {
+      j--;
+    } else {
+      i++;
+    }
+  }
+
+  const result: IInternalNode = {
+    label: nodeType,
+    children: [photoNodes[p], photoNodes[q]],
+  };
+
+  // q > p, we need to remove photoNodes[q] first to make sure photoNodes[p] is still pointing to the right item
+  photoNodes.splice(q, 1);
+  photoNodes.splice(p, 1);
+
+  return result;
+}
+
+function createPhotoNode(photo: IPhoto): ILeafNode {
+  return {
+    label: "P",
+    photo: photo,
+    ar: photo.size[0] / photo.size[1],
+  };
 }
 
 function createLayout(photos: IPhoto[]): INode {
