@@ -14,7 +14,7 @@ interface IPhoto {
 }
 
 interface INodeBase {
-  ar?: number;
+  ar: number;
   targetAr?: number;
   top?: number;
   left?: number;
@@ -64,11 +64,16 @@ export function Page(props: IProps) {
   const layout = crateLayoutDivideConquer(cats, pageAr);
   calculateLayout(layout, pageSize[0], pageSize[1]);
 
+  const photoArs = cats
+    .map((p) => (p.size[0] / p.size[1]).toFixed(2))
+    .join(",");
+  const fillPercent = (
+    (Math.min(pageAr, layout.ar) / Math.max(pageAr, layout.ar)) *
+    100
+  ).toFixed(2);
+
   console.log(
-    `Canvas filled by ${(
-      (Math.min(pageAr, layout.ar!) / Math.max(pageAr, layout.ar!)) *
-      100
-    ).toFixed(2)}%`
+    `${orientation} canvas filled by ${fillPercent}% with ${photoArs}`
   );
 
   return (
@@ -126,7 +131,7 @@ function useRandomCat(): IPhoto {
 function crateLayoutDivideConquer(photos: IPhoto[], targetAr: number): INode {
   const photoNodes = photos
     .map((p) => createPhotoNode(p))
-    .sort((a, b) => a.ar! - b.ar!);
+    .sort((a, b) => a.ar - b.ar);
 
   return createTree(photoNodes, photoNodes.length, targetAr);
 }
@@ -147,36 +152,38 @@ function createTree(
   const numberOfPhotosFirstChild = Math.floor(numberOfPhotos / 2);
   const numberOfPhotosSecondChild = numberOfPhotos - numberOfPhotosFirstChild;
 
-  // applying golden ratio principle
-  const targetArRatioFirstChild = targetAr > 1 ? 0.382 : 2.618;
-  const targetArRatioSecondChild = targetAr > 1 ? 0.618 : 1.618;
-  // const targetArRatioFirstChild = targetAr > 1 ? 0.5 : 2;
-  // const targetArRatioSecondChild = targetAr > 1 ? 0.5 : 2;
-  const nodeType = targetAr > 1 ? "H" : "V";
+  const nodeType = targetAr >= 1 ? "H" : "V";
 
-  return {
-    label: nodeType,
-    children: [
-      createTree(
-        photoNodes,
-        numberOfPhotosFirstChild,
-        targetAr * targetArRatioFirstChild
-      ),
-      createTree(
-        photoNodes,
-        numberOfPhotosSecondChild,
-        targetAr * targetArRatioSecondChild
-      ),
-    ],
-  };
+  // applying golden ratio principle
+  const targetArRatioFirstChild = nodeType === "H" ? 0.382 : 2.618;
+  // const targetArRatioSecondChild = nodeType === "H" ? 0.618 : 1.618;
+  // const targetArRatioFirstChild = nodeType === "H" ? 0.5 : 2;
+  // const targetArRatioSecondChild = nodeType === "H" ? 0.5 : 2;
+
+  const leftNode = createTree(
+    photoNodes,
+    numberOfPhotosFirstChild,
+    targetAr * targetArRatioFirstChild
+  );
+
+  const targetArRatioSecondChild =
+    nodeType === "H"
+      ? targetAr - leftNode.ar
+      : (targetAr * leftNode.ar) / (leftNode.ar - targetAr);
+
+  return createInternalNode(
+    nodeType,
+    leftNode,
+    createTree(photoNodes, numberOfPhotosSecondChild, targetArRatioSecondChild)
+  );
 }
 
 function chooseOnePhotoNode(photoNodes: ILeafNode[], targetAr: number) {
   let bestMatchIndex = 0;
-  let bestMatchAr = Math.abs(targetAr - photoNodes[0].ar!);
+  let bestMatchAr = Math.abs(targetAr - photoNodes[0].ar);
 
   photoNodes.forEach((p, i) => {
-    const ar = Math.abs(targetAr - p.ar!);
+    const ar = Math.abs(targetAr - p.ar);
     if (ar < bestMatchAr) {
       bestMatchIndex = i;
       bestMatchAr = ar;
@@ -196,18 +203,18 @@ function chooseTwoPhotoNode(
   let q = j;
   let nodeType: "H" | "V" = "H";
 
-  let bestMatchAr = Math.abs(photoNodes[p].ar! + photoNodes[q].ar! - targetAr);
+  let bestMatchAr = Math.abs(photoNodes[p].ar + photoNodes[q].ar - targetAr);
 
   while (i < j) {
     if (
-      Math.abs(photoNodes[i].ar! + photoNodes[j].ar! - targetAr) < bestMatchAr
+      Math.abs(photoNodes[i].ar + photoNodes[j].ar - targetAr) < bestMatchAr
     ) {
-      bestMatchAr = Math.abs(photoNodes[i].ar! + photoNodes[j].ar! - targetAr);
+      bestMatchAr = Math.abs(photoNodes[i].ar + photoNodes[j].ar - targetAr);
       p = i;
       q = j;
     }
 
-    if (photoNodes[i].ar! + photoNodes[j].ar! > targetAr) {
+    if (photoNodes[i].ar + photoNodes[j].ar > targetAr) {
       j--;
     } else {
       i++;
@@ -219,8 +226,8 @@ function chooseTwoPhotoNode(
 
   while (i < j) {
     const ar =
-      (photoNodes[i].ar! * photoNodes[j].ar!) /
-      (photoNodes[i].ar! + photoNodes[j].ar!);
+      (photoNodes[i].ar * photoNodes[j].ar) /
+      (photoNodes[i].ar + photoNodes[j].ar);
     if (Math.abs(ar - targetAr) < bestMatchAr) {
       bestMatchAr = Math.abs(ar - targetAr);
       p = i;
@@ -235,16 +242,29 @@ function chooseTwoPhotoNode(
     }
   }
 
-  const result: IInternalNode = {
-    label: nodeType,
-    children: [photoNodes[p], photoNodes[q]],
-  };
+  const result = createInternalNode(nodeType, photoNodes[p], photoNodes[q]);
 
   // q > p, we need to remove photoNodes[q] first to make sure photoNodes[p] is still pointing to the right item
   photoNodes.splice(q, 1);
   photoNodes.splice(p, 1);
 
   return result;
+}
+
+function createInternalNode(
+  type: "H" | "V",
+  leftNode: INode,
+  rightNode: INode
+): IInternalNode {
+  const ar =
+    type === "H"
+      ? leftNode.ar + rightNode.ar
+      : (leftNode.ar * rightNode.ar) / (leftNode.ar + rightNode.ar);
+  return {
+    label: type,
+    ar,
+    children: [leftNode, rightNode],
+  };
 }
 
 function createPhotoNode(photo: IPhoto): ILeafNode {
@@ -255,56 +275,17 @@ function createPhotoNode(photo: IPhoto): ILeafNode {
   };
 }
 
-function createLayout(photos: IPhoto[]): INode {
-  const photo0 = p(photos[0]);
-  const photo1 = p(photos[1]);
-  const photo2 = p(photos[2]);
-  const photo3 = p(photos[3]);
-  const photo4 = p(photos[4]);
-  const photo5 = p(photos[5]);
-  const photo6 = p(photos[6]);
-
-  return v(
-    h(photo0, h(photo1, photo2)),
-    h(v(photo3, h(photo4, photo5)), photo6)
-  );
-
-  function h(node1: INode, node2: INode): INode {
-    return {
-      label: "H",
-      children: [node1, node2],
-    };
-  }
-
-  function v(node1: INode, node2: INode): INode {
-    return {
-      label: "V",
-      children: [node1, node2],
-    };
-  }
-
-  function p(photo: IPhoto): INode {
-    return {
-      label: "P",
-      photo: photo,
-      ar: photo.size[0] / photo.size[1],
-    };
-  }
-}
-
 function calculateLayout(root: INode, pageWidth: number, pageHeight: number) {
   const pageRatio = pageWidth / pageHeight;
 
-  fillAspectRatio(root);
-
-  if (root.ar! > pageRatio) {
+  if (root.ar > pageRatio) {
     root.width = pageWidth;
-    root.height = pageWidth / root.ar!;
+    root.height = pageWidth / root.ar;
     root.top = (pageHeight - root.height) / 2;
     root.left = 0;
   } else {
     root.height = pageHeight;
-    root.width = pageHeight * root.ar!;
+    root.width = pageHeight * root.ar;
     root.top = 0;
     root.left = (pageWidth - root.width) / 2;
   }
@@ -312,47 +293,23 @@ function calculateLayout(root: INode, pageWidth: number, pageHeight: number) {
   fillSizes(root);
 }
 
-function fillAspectRatio(node: INode): number {
-  if (node.label === "P") {
-    return node.ar!;
-  }
-
-  if (node.label === "H") {
-    node.ar =
-      fillAspectRatio(node.children[0]) + fillAspectRatio(node.children[1]);
-
-    return node.ar;
-  }
-
-  if (node.label === "V") {
-    node.ar =
-      1 /
-      (1 / fillAspectRatio(node.children[0]) +
-        1 / fillAspectRatio(node.children[1]));
-
-    return node.ar;
-  }
-
-  return 0;
-}
-
 function fillSizes(node: INode) {
   if (node.label === "H") {
     node.children[0].height = node.height;
-    node.children[0].width = node.height! * node.children[0].ar!;
+    node.children[0].width = node.height! * node.children[0].ar;
     node.children[0].top = node.top;
     node.children[0].left = node.left;
     node.children[1].height = node.height;
-    node.children[1].width = node.height! * node.children[1].ar!;
+    node.children[1].width = node.height! * node.children[1].ar;
     node.children[1].top = node.top;
     node.children[1].left = node.left! + node.children[0].width;
   }
   if (node.label === "V") {
-    node.children[0].height = node.width! / node.children[0].ar!;
+    node.children[0].height = node.width! / node.children[0].ar;
     node.children[0].width = node.width;
     node.children[0].top = node.top;
     node.children[0].left = node.left;
-    node.children[1].height = node.width! / node.children[1].ar!;
+    node.children[1].height = node.width! / node.children[1].ar;
     node.children[1].width = node.width;
     node.children[1].top = node.top! + node.children[0].height;
     node.children[1].left = node.left!;
