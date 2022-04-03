@@ -64,7 +64,12 @@ export function Page(props: IProps) {
   const layout = crateLayoutDivideConquer(cats, pageAr);
   calculateLayout(layout, pageSize[0], pageSize[1]);
 
-  // console.log("layout", layout);
+  console.log(
+    `Canvas filled by ${(
+      (Math.min(pageAr, layout.ar!) / Math.max(pageAr, layout.ar!)) *
+      100
+    ).toFixed(2)}%`
+  );
 
   return (
     <div className="page" style={style}>
@@ -90,27 +95,31 @@ function renderPhoto(leaf: ILeafNode) {
   return (
     <div className="image" style={imageStyles}>
       <div className="info">
-        <dt>Image ratio: {leaf.ar}</dt>
+        <dt>Image ratio: {leaf.ar?.toFixed(2)}</dt>
       </div>
       <img src={leaf.photo.image} />
     </div>
   );
 }
 
-function useRandomCat(min = 0, max = 4): IPhoto {
-  const rand = () => Math.floor(Math.random() * (max - min)) + min;
+function useRandomCat(): IPhoto {
+  const rand = (min = 0, max = 4) =>
+    Math.floor(Math.random() * (max - min)) + min;
   const sizes: [number, number][] = [
     [16, 9],
     [9, 16],
     [4, 3],
     [3, 4],
+    [2, 3],
+    [3, 2],
+    [1, 1],
   ].map((size) => [size[0] * 1000, size[1] * 1000]);
 
   return [
-    { size: sizes[rand()], image: cat0 },
-    { size: sizes[rand()], image: cat1 },
-    { size: sizes[rand()], image: cat2 },
-    { size: sizes[rand()], image: cat3 },
+    { size: sizes[rand(0, 7)], image: cat0 },
+    { size: sizes[rand(0, 7)], image: cat1 },
+    { size: sizes[rand(0, 7)], image: cat2 },
+    { size: sizes[rand(0, 7)], image: cat3 },
   ][rand()];
 }
 
@@ -141,6 +150,8 @@ function createTree(
   // applying golden ratio principle
   const targetArRatioFirstChild = targetAr > 1 ? 0.382 : 2.618;
   const targetArRatioSecondChild = targetAr > 1 ? 0.618 : 1.618;
+  // const targetArRatioFirstChild = targetAr > 1 ? 0.5 : 2;
+  // const targetArRatioSecondChild = targetAr > 1 ? 0.5 : 2;
   const nodeType = targetAr > 1 ? "H" : "V";
 
   return {
